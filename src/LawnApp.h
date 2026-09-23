@@ -85,6 +85,7 @@ public:
 	std::string						mMod;
 	bool							mRegisterResourcesLoaded;
 	bool							mCheatKeys;
+	int								mStartLevel;			// -level: Adventure level to open once loading completes, 0 for none
 	GameMode						mGameMode;
 	GameScenes						mGameScene;
 	bool							mLoadingZombiesThreadCompleted;
@@ -232,6 +233,7 @@ public:
 	void							PlayFoleyPitch(FoleyType theFoleyType, float thePitch);
 	void							PlaySample(intptr_t theSoundNum) override;
 	void							FastLoad(GameMode theGameMode);
+	void							StartLevelFromCommandLine();
 	static std::string				GetStageString(int theLevel);
 	void					KillChallengeScreen();
 	void							ShowChallengeScreen(ChallengePage thePage);

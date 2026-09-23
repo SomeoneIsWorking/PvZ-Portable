@@ -158,6 +158,7 @@ LawnApp::LawnApp()
 	mProfileMgr = std::make_unique<ProfileMgr>();
 	mRegisterResourcesLoaded = false;
 	mCheatKeys = false;
+	mStartLevel = 0;
 	mCrazyDaveReanimID = ReanimationID::REANIMATIONID_NULL;
 	mCrazyDaveState = CrazyDaveState::CRAZY_DAVE_OFF;
 	mCrazyDaveBlinkCounter = 0;
@@ -1251,10 +1252,37 @@ void LawnApp::HandleCmdLineParam(std::string_view theParamName, std::string_view
 		mDebugKeysEnabled = true;
 #endif
 	}
+	else if (theParamName == "-level")
+	{
+		int anArea = 0, aSubArea = 0;
+		std::string aValue(theParamValue);
+		if (sscanf(aValue.c_str(), "%d-%d", &anArea, &aSubArea) != 2 || anArea < 1 || anArea > ADVENTURE_AREAS ||
+			aSubArea < 1 || aSubArea > LEVELS_PER_AREA)
+		{
+			Popup(StrFormat("-level takes an Adventure level as area-subarea (1-1 to %d-%d), not '%s'", ADVENTURE_AREAS, LEVELS_PER_AREA, aValue.c_str()));
+			DoExit(1);
+			return;
+		}
+		mStartLevel = (anArea - 1) * LEVELS_PER_AREA + aSubArea;
+	}
 	else
 	{
 		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
 	}
+}
+
+// Opens the -level=A-S Adventure level in place of the title screen's Start button, as the
+// current profile or, when there is none, a new one named for the level.
+void LawnApp::StartLevelFromCommandLine()
+{
+	if (mPlayerInfo == nullptr)
+	{
+		mPlayerInfo = mProfileMgr->AddProfile(GetStageString(mStartLevel));
+		mProfileMgr->Save();
+	}
+	mPlayerInfo->SetLevel(mStartLevel);
+	WriteCurrentUserConfig();
+	FastLoad(GameMode::GAMEMODE_ADVENTURE);
 }
 
 bool LawnApp::UpdatePlayerProfileForFinishingLevel()

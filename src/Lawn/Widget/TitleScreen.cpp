@@ -433,6 +433,10 @@ void TitleScreen::Update()
 			mApp->KillGameSelector();
 			mApp->ShowCreditScreen();
 		}
+		else if (mApp->mStartLevel > 0)
+		{
+			mApp->StartLevelFromCommandLine();
+		}
 		else if (mApp->mCheatKeys && mApp->mPlayerInfo && mQuickLoadKey == (KeyCode)0x54)
 		{
 			mApp->FastLoad(GameMode::GAMEMODE_ADVENTURE);
