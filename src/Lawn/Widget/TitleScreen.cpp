@@ -433,6 +433,10 @@ void TitleScreen::Update()
 			mApp->KillGameSelector();
 			mApp->ShowCreditScreen();
 		}
+		else if (!mApp->mScenarioPath.empty())
+		{
+			mApp->RunScenarioFromCommandLine();
+		}
 		else if (mApp->mStartLevel > 0)
 		{
 			mApp->StartLevelFromCommandLine();

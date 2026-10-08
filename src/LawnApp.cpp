@@ -21,6 +21,7 @@
 
 #include <time.h>
 #include "LawnApp.h"
+#include "Lawn/System/ScenarioRun.h"
 #include "Resources.h"
 #include "Lawn/LawnCommon.h"
 #include "Lawn/Board.h"
@@ -1265,10 +1266,36 @@ void LawnApp::HandleCmdLineParam(std::string_view theParamName, std::string_view
 		}
 		mStartLevel = (anArea - 1) * LEVELS_PER_AREA + aSubArea;
 	}
+	else if (theParamName == "-scenario")
+	{
+		mScenarioPath = std::string(theParamValue);
+	}
+	else if (theParamName == "-scenario-out")
+	{
+		mScenarioOut = std::string(theParamValue);
+	}
 	else
 	{
 		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
 	}
+}
+
+// Runs the -scenario file on a real Board without a draw or a window event, then exits with its code.
+void LawnApp::RunScenarioFromCommandLine()
+{
+	if (mScenarioOut.empty())
+	{
+		Popup("-scenario needs -scenario-out=<file> for its per-update JSON lines");
+		DoExit(1);
+		return;
+	}
+	if (mPlayerInfo == nullptr)
+	{
+		mPlayerInfo = mProfileMgr->AddProfile("scenario");
+		mProfileMgr->Save();
+	}
+	int aCode = ScenarioRun(this).Run(mScenarioPath, mScenarioOut);
+	DoExit(aCode);
 }
 
 // Opens the -level=A-S Adventure level in place of the title screen's Start button, as the

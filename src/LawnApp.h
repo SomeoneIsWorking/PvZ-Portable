@@ -86,6 +86,8 @@ public:
 	bool							mRegisterResourcesLoaded;
 	bool							mCheatKeys;
 	int								mStartLevel;			// -level: Adventure level to open once loading completes, 0 for none
+	std::string						mScenarioPath;			// -scenario: JSON scenario to run headless once loading completes, empty for none
+	std::string						mScenarioOut;			// -scenario-out: where the scenario writes its per-update JSON lines
 	GameMode						mGameMode;
 	GameScenes						mGameScene;
 	bool							mLoadingZombiesThreadCompleted;
@@ -234,6 +236,7 @@ public:
 	void							PlaySample(intptr_t theSoundNum) override;
 	void							FastLoad(GameMode theGameMode);
 	void							StartLevelFromCommandLine();
+	void							RunScenarioFromCommandLine();
 	static std::string				GetStageString(int theLevel);
 	void					KillChallengeScreen();
 	void							ShowChallengeScreen(ChallengePage thePage);
