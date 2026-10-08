@@ -193,6 +193,7 @@ public:
 	std::atomic<bool>		mShutdown;
 	bool					mExitToTop;
 	bool					mIsWindowed;
+	bool					mWindowHidden = false; // created unmapped, and errors are logged rather than shown
 	bool					mIsPhysWindowed;
 	bool					mFullScreenWindow; // uses ChangeDisplaySettings to run fullscreen with mIsWindowed true
 	bool					mForceFullscreen;

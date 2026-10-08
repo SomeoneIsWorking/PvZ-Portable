@@ -57,7 +57,8 @@ void SexyAppBase::MakeWindow()
 		SDL_Init(SDL_INIT_VIDEO);
 
 		Uint32 winFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE
-			| (!mIsWindowed ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+			| (!mIsWindowed ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0)
+			| (mWindowHidden ? SDL_WINDOW_HIDDEN : 0);
 
 		using WindowPtr = std::unique_ptr<SDL_Window, decltype(&SDL_DestroyWindow)>;
 		using GLContextPtr = std::unique_ptr<std::remove_pointer_t<SDL_GLContext>, decltype(&SDL_GL_DeleteContext)>;

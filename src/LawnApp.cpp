@@ -1269,6 +1269,7 @@ void LawnApp::HandleCmdLineParam(std::string_view theParamName, std::string_view
 	else if (theParamName == "-scenario")
 	{
 		mScenarioPath = std::string(theParamValue);
+		mWindowHidden = true;
 	}
 	else if (theParamName == "-scenario-out")
 	{
