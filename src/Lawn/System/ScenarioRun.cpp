@@ -15,8 +15,10 @@
 // lawn's Adventure level), "sun" (mSunMoney) and "money" (the player's mCoins). A plant with
 // "at": seconds is planted then through Board::AddPlant, as a player plants, instead of with the
 // zombie. "frames": [seconds] draws the screen at each and writes oracle-frame-<tick>.png beside the
-// trace. A line is { "tick": n, "zombies": [...], "plants": [...], "coins": [...], "sun": n };
-// tick 0 is before any update.
+// trace. "zombie" may be null for a board with no tracked zombie. "beaten": true records the mode's
+// challenge as won before the board starts, so the board plays as a replay. "presses": [ { "at":
+// seconds, "packet": index } ] clicks that seed packet as the player does. A line is { "tick": n,
+// "zombies": [...], "plants": [...], "coins": [...], "sun": n, "money": n }; tick 0 is before any update.
 
 #include "ScenarioRun.h"
 
@@ -35,8 +37,10 @@
 #include "../../ConstEnums.h"
 #include "../../PvzpLib/Reanimator.h"
 #include "../Board.h"
+#include "../Challenge.h"
 #include "../Coin.h"
 #include "../Plant.h"
+#include "../SeedPacket.h"
 #include "../Zombie.h"
 #include "../LawnMower.h"
 #include "PlayerInfo.h"
@@ -53,7 +57,8 @@ namespace
 
 struct Json
 {
-	enum Kind { Null, Number, String, Array, Object } mKind = Null;
+	enum Kind { Null, Bool, Number, String, Array, Object } mKind = Null;
+	bool mBool = false;
 	double mNumber = 0;
 	std::string mString;
 	std::vector<Json> mItems;
@@ -191,6 +196,18 @@ private:
 		{
 			mPos += 4;
 			return aValue;
+		}
+		for (bool aBool : { true, false })
+		{
+			const char* aWord = aBool ? "true" : "false";
+			size_t aLength = std::strlen(aWord);
+			if (mText.compare(mPos, aLength, aWord) == 0)
+			{
+				mPos += aLength;
+				aValue.mKind = Json::Bool;
+				aValue.mBool = aBool;
+				return aValue;
+			}
 		}
 		char* anEnd = nullptr;
 		aValue.mNumber = std::strtod(mText.c_str() + mPos, &anEnd);
@@ -361,8 +378,9 @@ void WriteTick(FILE* theOut, LawnApp* theApp, Board* theBoard, int theTick)
 	{
 		if (aCoin->mDead)
 			continue;
-		fprintf(theOut, "%s{\"type\":%d,\"x\":%.2f,\"y\":%.2f,\"collected\":%s}", aFirst ? "" : ",",
-			static_cast<int>(aCoin->mType), aCoin->mPosX, aCoin->mPosY, aCoin->mIsBeingCollected ? "true" : "false");
+		fprintf(theOut, "%s{\"id\":%u,\"type\":%d,\"x\":%.2f,\"y\":%.2f,\"collected\":%s}", aFirst ? "" : ",",
+			theBoard->mCoins.DataArrayGetID(aCoin), static_cast<int>(aCoin->mType), aCoin->mPosX, aCoin->mPosY,
+			aCoin->mIsBeingCollected ? "true" : "false");
 		aFirst = false;
 	}
 	fprintf(theOut, "],\"sun\":%d,\"money\":%d}\n", theBoard->mSunMoney, theApp->mPlayerInfo->mCoins);
@@ -398,6 +416,12 @@ void WriteFrame(LawnApp* theApp, Board* theBoard, const std::string& thePath)
 	theApp->mGLInterface->Redraw(nullptr);
 }
 
+struct TimedPress
+{
+	int mTick;
+	int mPacket;
+};
+
 struct TimedPlant
 {
 	int mTick;
@@ -430,7 +454,10 @@ int ScenarioRun::Run(const std::string& theScenarioPath, const std::string& theO
 	{
 		Json aScenario = JsonReader(aText.str()).Read();
 		int aLevel = LevelForLawn(StringOr(aScenario, "lawn", "day"));
-		ZombieType aZombieType = static_cast<ZombieType>(LookUp(gZombieNames, StringOr(aScenario, "zombie", ""), "zombie"));
+		const Json* aZombieName = aScenario.Find("zombie");
+		bool aHasZombie = aZombieName != nullptr && aZombieName->mKind == Json::String;
+		ZombieType aZombieType = aHasZombie ? static_cast<ZombieType>(LookUp(gZombieNames, aZombieName->mString, "zombie"))
+		                                    : ZombieType::ZOMBIE_INVALID;
 		int aRow = static_cast<int>(NumberOr(aScenario, "row", 2));
 		int aTicks = static_cast<int>(NumberOr(aScenario, "seconds", 20) * 100.0);
 
@@ -438,11 +465,16 @@ int ScenarioRun::Run(const std::string& theScenarioPath, const std::string& theO
 		const Json* aMode = aScenario.Find("mode");
 		mApp->mGameMode = aMode != nullptr ? static_cast<GameMode>(LookUp(gGameModeNames, aMode->mString, "mode"))
 		                                    : GameMode::GAMEMODE_ADVENTURE;
+		const Json* aBeaten = aScenario.Find("beaten");
+		if (aBeaten != nullptr && aBeaten->mKind == Json::Bool && aBeaten->mBool)
+			mApp->mPlayerInfo->mChallengeRecords[mApp->GetCurrentChallengeIndex()] = 1;
 		mApp->MakeNewBoard();
 		Board* aBoard = mApp->mBoard;
 		aBoard->InitLevel();
 		mApp->mBoardResult = BoardResult::BOARDRESULT_NONE;
 		mApp->mGameScene = GameScenes::SCENE_PLAYING;
+		// The mode's own start: Zombiquarium's two snorkels, the belt's first delay.
+		aBoard->mChallenge->StartLevel();
 
 		// No waves, mowers or sky sun: the scenario places everything it measures.
 		aBoard->mCurrentWave = aBoard->mNumWaves;
@@ -471,6 +503,19 @@ int ScenarioRun::Run(const std::string& theScenarioPath, const std::string& theO
 			}
 		}
 
+		std::vector<TimedPress> aPresses;
+		const Json* aPressSpecs = aScenario.Find("presses");
+		if (aPressSpecs != nullptr)
+		{
+			for (const Json& aPress : aPressSpecs->mItems)
+			{
+				int aPacket = static_cast<int>(NumberOr(aPress, "packet", -1));
+				if (aPacket < 0 || aPacket >= aBoard->mSeedBank->mNumPackets)
+					throw std::runtime_error("scenario: a press names no seed packet");
+				aPresses.push_back({ static_cast<int>(NumberOr(aPress, "at", 0) * 100.0 + 0.5), aPacket });
+			}
+		}
+
 		std::vector<int> aFrameTicks;
 		const Json* aFrames = aScenario.Find("frames");
 		if (aFrames != nullptr)
@@ -481,11 +526,11 @@ int ScenarioRun::Run(const std::string& theScenarioPath, const std::string& theO
 		size_t aSlash = theOutPath.find_last_of('/');
 		std::string aFrameDir = aSlash == std::string::npos ? std::string(".") : theOutPath.substr(0, aSlash);
 
-		Zombie* aZombie = aBoard->AddZombieInRow(aZombieType, aRow, -1);
-		if (aZombie == nullptr)
+		Zombie* aZombie = aHasZombie ? aBoard->AddZombieInRow(aZombieType, aRow, -1) : nullptr;
+		if (aHasZombie && aZombie == nullptr)
 			throw std::runtime_error("scenario: the board refused the zombie");
 		const Json* aStart = aScenario.Find("startColumn");
-		if (aStart != nullptr && aStart->mKind == Json::Number)
+		if (aZombie != nullptr && aStart != nullptr && aStart->mKind == Json::Number)
 		{
 			aZombie->mPosX = static_cast<float>(LAWN_XMIN) + 80.0f * static_cast<float>(aStart->mNumber);
 		}
@@ -509,6 +554,11 @@ int ScenarioRun::Run(const std::string& theScenarioPath, const std::string& theO
 			{
 				if (aPlant.mTick == aTick)
 					aBoard->AddPlant(aPlant.mCol, aPlant.mRow, aPlant.mSeed, SeedType::SEED_NONE);
+			}
+			for (const TimedPress& aPress : aPresses)
+			{
+				if (aPress.mTick == aTick)
+					aBoard->mSeedBank->mSeedPackets[aPress.mPacket].MouseDown(0, 0, 1);
 			}
 			mApp->mAppCounter++;
 			aBoard->ProcessDeleteQueue();
