@@ -16,8 +16,9 @@
 // "at": seconds is planted then through Board::AddPlant, as a player plants, instead of with the
 // zombie. "frames": [seconds] draws the screen at each and writes oracle-frame-<tick>.png beside the
 // trace. "zombie" may be null for a board with no tracked zombie. "beaten": true records the mode's
-// challenge as won before the board starts, so the board plays as a replay. "presses": [ { "at":
-// seconds, "packet": index } ] clicks that seed packet as the player does. A line is { "tick": n,
+// challenge as won before the board starts, so the board plays as a replay. "mowers": true keeps
+// the board's mowers, which are otherwise taken off. "presses": [ { "at": seconds, "packet":
+// index } ] clicks that seed packet as the player does. A line is { "tick": n,
 // "zombies": [...], "plants": [...], "coins": [...], "sun": n, "money": n }; tick 0 is before any update.
 
 #include "ScenarioRun.h"
@@ -476,11 +477,15 @@ int ScenarioRun::Run(const std::string& theScenarioPath, const std::string& theO
 		// The mode's own start: Zombiquarium's two snorkels, the belt's first delay.
 		aBoard->mChallenge->StartLevel();
 
-		// No waves, mowers or sky sun: the scenario places everything it measures.
+		// No waves or sky sun, and no mowers unless asked: the scenario places everything it measures.
 		aBoard->mCurrentWave = aBoard->mNumWaves;
-		for (LawnMower* aMower : aBoard->mLawnMowers)
+		const Json* aMowers = aScenario.Find("mowers");
+		if (aMowers == nullptr || aMowers->mKind != Json::Bool || !aMowers->mBool)
 		{
-			aMower->mDead = true;
+			for (LawnMower* aMower : aBoard->mLawnMowers)
+			{
+				aMower->mDead = true;
+			}
 		}
 
 		aBoard->mSunMoney = static_cast<int>(NumberOr(aScenario, "sun", aBoard->mSunMoney));
