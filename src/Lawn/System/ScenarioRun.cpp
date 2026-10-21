@@ -11,7 +11,12 @@
 //     "companions": [ { "zombie": "ZOMBIE_NORMAL", "row": 0 } ], "seconds": 30 }
 // The first zombie of every line is the tracked one; companions are spawned after it.
 // "startColumn" is optional: the zombie's mPosX is then LAWN_XMIN + 80 * startColumn instead of the
-// spawn point. A line is { "tick": n, "zombies": [...], "plants": [...] }; tick 0 is before any update.
+// spawn point. Optional board seeds: "mode" (a GAMEMODE_* name, the board's mode in place of the
+// lawn's Adventure level), "sun" (mSunMoney) and "money" (the player's mCoins). A plant with
+// "at": seconds is planted then through Board::AddPlant, as a player plants, instead of with the
+// zombie. "frames": [seconds] draws the screen at each and writes oracle-frame-<tick>.png beside the
+// trace. A line is { "tick": n, "zombies": [...], "plants": [...], "coins": [...], "sun": n };
+// tick 0 is before any update.
 
 #include "ScenarioRun.h"
 
@@ -22,6 +27,7 @@
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 #include "../../LawnApp.h"
@@ -29,10 +35,16 @@
 #include "../../ConstEnums.h"
 #include "../../PvzpLib/Reanimator.h"
 #include "../Board.h"
+#include "../Coin.h"
 #include "../Plant.h"
 #include "../Zombie.h"
 #include "../LawnMower.h"
 #include "PlayerInfo.h"
+#include "graphics/GLPlatform.h"
+#include "graphics/GLImage.h"
+#include "graphics/GLInterface.h"
+#include "imagelib/ImageLib.h"
+#include "graphics/Graphics.h"
 
 using namespace Sexy;
 
@@ -223,7 +235,24 @@ const NamedValue gSeedNames[] = {
 	NAMED(SEED_GARLIC), NAMED(SEED_UMBRELLA), NAMED(SEED_MARIGOLD), NAMED(SEED_MELONPULT),
 	NAMED(SEED_GATLINGPEA), NAMED(SEED_TWINSUNFLOWER), NAMED(SEED_GLOOMSHROOM), NAMED(SEED_CATTAIL),
 	NAMED(SEED_WINTERMELON), NAMED(SEED_GOLD_MAGNET), NAMED(SEED_SPIKEROCK), NAMED(SEED_COBCANNON),
-	NAMED(SEED_IMITATER),
+	NAMED(SEED_IMITATER), NAMED(SEED_EXPLODE_O_NUT), NAMED(SEED_GIANT_WALLNUT),
+};
+
+const NamedValue gGameModeNames[] = {
+	NAMED(GAMEMODE_ADVENTURE), NAMED(GAMEMODE_CHALLENGE_WAR_AND_PEAS), NAMED(GAMEMODE_CHALLENGE_WALLNUT_BOWLING),
+	NAMED(GAMEMODE_CHALLENGE_SLOT_MACHINE), NAMED(GAMEMODE_CHALLENGE_RAINING_SEEDS), NAMED(GAMEMODE_CHALLENGE_BEGHOULED),
+	NAMED(GAMEMODE_CHALLENGE_INVISIGHOUL), NAMED(GAMEMODE_CHALLENGE_SEEING_STARS), NAMED(GAMEMODE_CHALLENGE_ZOMBIQUARIUM),
+	NAMED(GAMEMODE_CHALLENGE_BEGHOULED_TWIST), NAMED(GAMEMODE_CHALLENGE_LITTLE_TROUBLE),
+	NAMED(GAMEMODE_CHALLENGE_PORTAL_COMBAT), NAMED(GAMEMODE_CHALLENGE_COLUMN), NAMED(GAMEMODE_CHALLENGE_BOBSLED_BONANZA),
+	NAMED(GAMEMODE_CHALLENGE_SPEED), NAMED(GAMEMODE_CHALLENGE_WHACK_A_ZOMBIE), NAMED(GAMEMODE_CHALLENGE_LAST_STAND),
+	NAMED(GAMEMODE_CHALLENGE_WAR_AND_PEAS_2), NAMED(GAMEMODE_CHALLENGE_WALLNUT_BOWLING_2),
+	NAMED(GAMEMODE_CHALLENGE_POGO_PARTY), NAMED(GAMEMODE_CHALLENGE_FINAL_BOSS),
+	NAMED(GAMEMODE_CHALLENGE_ART_CHALLENGE_WALLNUT), NAMED(GAMEMODE_CHALLENGE_SUNNY_DAY),
+	NAMED(GAMEMODE_CHALLENGE_RESODDED), NAMED(GAMEMODE_CHALLENGE_BIG_TIME),
+	NAMED(GAMEMODE_CHALLENGE_ART_CHALLENGE_SUNFLOWER), NAMED(GAMEMODE_CHALLENGE_AIR_RAID), NAMED(GAMEMODE_CHALLENGE_ICE),
+	NAMED(GAMEMODE_CHALLENGE_HIGH_GRAVITY), NAMED(GAMEMODE_CHALLENGE_GRAVE_DANGER),
+	NAMED(GAMEMODE_CHALLENGE_SHOVEL), NAMED(GAMEMODE_CHALLENGE_STORMY_NIGHT), NAMED(GAMEMODE_CHALLENGE_BUNGEE_BLITZ),
+	NAMED(GAMEMODE_CHALLENGE_SQUIRREL),
 };
 
 #undef NAMED
@@ -290,15 +319,14 @@ void WriteTick(FILE* theOut, LawnApp* theApp, Board* theBoard, int theTick)
 {
 	fprintf(theOut, "{\"tick\":%d,\"zombies\":[", theTick);
 	bool aFirst = true;
-	int anIndex = 0;
 	for (Zombie* aZombie : theBoard->mZombies)
 	{
-		int aZombieIndex = anIndex++;
+		unsigned int aZombieIndex = theBoard->mZombies.DataArrayGetID(aZombie);
 		if (aZombie->mDead)
 			continue;
 		Reanimation* aReanim = theApp->ReanimationTryToGet(aZombie->mBodyReanimID);
 		fprintf(theOut,
-			"%s{\"id\":%d,\"type\":%d,\"row\":%d,\"x\":%.4f,\"y\":%.4f,\"altitude\":%.4f,\"velX\":%.5f,"
+			"%s{\"id\":%u,\"type\":%d,\"row\":%d,\"x\":%.4f,\"y\":%.4f,\"altitude\":%.4f,\"velX\":%.5f,"
 			"\"bodyHealth\":%d,\"helmHealth\":%d,\"shieldHealth\":%d,\"phase\":%d,\"height\":%d,"
 			"\"eating\":%s,\"dying\":%s,\"track\":\"%s\",\"animTime\":%.5f,\"frameStart\":%d,\"frameCount\":%d}",
 			aFirst ? "" : ",", aZombieIndex, static_cast<int>(aZombie->mZombieType), aZombie->mRow,
@@ -312,18 +340,71 @@ void WriteTick(FILE* theOut, LawnApp* theApp, Board* theBoard, int theTick)
 	}
 	fprintf(theOut, "],\"plants\":[");
 	aFirst = true;
-	int aPlantIndex = 0;
 	for (Plant* aPlant : theBoard->mPlants)
 	{
-		int aId = aPlantIndex++;
+		// The data array's id, which a later object in the same slot does not share.
+		unsigned int aId = theBoard->mPlants.DataArrayGetID(aPlant);
 		if (aPlant->mDead)
 			continue;
-		fprintf(theOut, "%s{\"id\":%d,\"seed\":%d,\"col\":%d,\"row\":%d,\"health\":%d}", aFirst ? "" : ",", aId,
-			static_cast<int>(aPlant->mSeedType), aPlant->mPlantCol, aPlant->mRow, aPlant->mPlantHealth);
+		Reanimation* aReanim = theApp->ReanimationTryToGet(aPlant->mBodyReanimID);
+		fprintf(theOut,
+			"%s{\"id\":%u,\"seed\":%d,\"col\":%d,\"row\":%d,\"health\":%d,\"x\":%d,\"y\":%d,\"rowY\":%d,"
+			"\"state\":%d,\"launches\":%d,\"animRate\":%.4f}",
+			aFirst ? "" : ",", aId, static_cast<int>(aPlant->mSeedType), aPlant->mPlantCol, aPlant->mRow,
+			aPlant->mPlantHealth, aPlant->mX, aPlant->mY, theBoard->GridToPixelY(0, aPlant->mRow),
+			static_cast<int>(aPlant->mState), aPlant->mLaunchCounter, aReanim != nullptr ? aReanim->mAnimRate : 0.0f);
 		aFirst = false;
 	}
-	fprintf(theOut, "]}\n");
+	fprintf(theOut, "],\"coins\":[");
+	aFirst = true;
+	for (Coin* aCoin : theBoard->mCoins)
+	{
+		if (aCoin->mDead)
+			continue;
+		fprintf(theOut, "%s{\"type\":%d,\"x\":%.2f,\"y\":%.2f,\"collected\":%s}", aFirst ? "" : ",",
+			static_cast<int>(aCoin->mType), aCoin->mPosX, aCoin->mPosY, aCoin->mIsBeingCollected ? "true" : "false");
+		aFirst = false;
+	}
+	fprintf(theOut, "],\"sun\":%d,\"money\":%d}\n", theBoard->mSunMoney, theApp->mPlayerInfo->mCoins);
 }
+
+// Draws the board as its widget draws itself and writes the presented pixels as a PNG; the title
+// screen the scenario was started from is still the top widget, so the screen is not drawn whole.
+void WriteFrame(LawnApp* theApp, Board* theBoard, const std::string& thePath)
+{
+	theApp->mGLInterface->PreDraw();
+	Graphics aGraphics(theApp->mGLInterface->GetScreenImage());
+	theBoard->Draw(&aGraphics);
+	const Rect& aRect = theApp->mGLInterface->mPresentationRect;
+	std::vector<uint32_t> aPixels(static_cast<size_t>(aRect.mWidth) * aRect.mHeight);
+	glReadPixels(aRect.mX, aRect.mY, aRect.mWidth, aRect.mHeight, GL_RGBA, GL_UNSIGNED_BYTE, aPixels.data());
+	ImageLib::Image anImage;
+	anImage.mWidth = aRect.mWidth;
+	anImage.mHeight = aRect.mHeight;
+	anImage.mBits = std::make_unique<uint32_t[]>(aPixels.size());
+	// GL rows run bottom up and its bytes are RGBA; the image is top down ARGB.
+	for (int aRow = 0; aRow < aRect.mHeight; aRow++)
+	{
+		const uint32_t* aSrc = aPixels.data() + static_cast<size_t>(aRect.mHeight - 1 - aRow) * aRect.mWidth;
+		uint32_t* aDst = anImage.mBits.get() + static_cast<size_t>(aRow) * aRect.mWidth;
+		for (int aCol = 0; aCol < aRect.mWidth; aCol++)
+		{
+			uint32_t aRgba = aSrc[aCol];
+			aDst[aCol] = 0xFF000000u | ((aRgba & 0xFFu) << 16) | (aRgba & 0xFF00u) | ((aRgba >> 16) & 0xFFu);
+		}
+	}
+	if (!ImageLib::WritePNGImage(thePath, &anImage))
+		throw std::runtime_error("scenario: cannot write " + thePath);
+	theApp->mGLInterface->Redraw(nullptr);
+}
+
+struct TimedPlant
+{
+	int mTick;
+	int mCol;
+	int mRow;
+	SeedType mSeed;
+};
 
 } // namespace
 
@@ -354,7 +435,9 @@ int ScenarioRun::Run(const std::string& theScenarioPath, const std::string& theO
 		int aTicks = static_cast<int>(NumberOr(aScenario, "seconds", 20) * 100.0);
 
 		mApp->mPlayerInfo->SetLevel(aLevel);
-		mApp->mGameMode = GameMode::GAMEMODE_ADVENTURE;
+		const Json* aMode = aScenario.Find("mode");
+		mApp->mGameMode = aMode != nullptr ? static_cast<GameMode>(LookUp(gGameModeNames, aMode->mString, "mode"))
+		                                    : GameMode::GAMEMODE_ADVENTURE;
 		mApp->MakeNewBoard();
 		Board* aBoard = mApp->mBoard;
 		aBoard->InitLevel();
@@ -368,16 +451,35 @@ int ScenarioRun::Run(const std::string& theScenarioPath, const std::string& theO
 			aMower->mDead = true;
 		}
 
+		aBoard->mSunMoney = static_cast<int>(NumberOr(aScenario, "sun", aBoard->mSunMoney));
+		mApp->mPlayerInfo->mCoins = static_cast<int>(NumberOr(aScenario, "money", mApp->mPlayerInfo->mCoins));
+
+		std::vector<TimedPlant> aTimedPlants;
 		const Json* aPlants = aScenario.Find("plants");
 		if (aPlants != nullptr)
 		{
 			for (const Json& aPlantSpec : aPlants->mItems)
 			{
 				SeedType aSeed = static_cast<SeedType>(LookUp(gSeedNames, StringOr(aPlantSpec, "seed", ""), "seed"));
-				aBoard->NewPlant(static_cast<int>(NumberOr(aPlantSpec, "col", 0)),
-					static_cast<int>(NumberOr(aPlantSpec, "row", aRow)), aSeed, SeedType::SEED_NONE);
+				int aCol = static_cast<int>(NumberOr(aPlantSpec, "col", 0));
+				int aPlantRow = static_cast<int>(NumberOr(aPlantSpec, "row", aRow));
+				const Json* anAt = aPlantSpec.Find("at");
+				if (anAt != nullptr && anAt->mKind == Json::Number)
+					aTimedPlants.push_back({ static_cast<int>(anAt->mNumber * 100.0 + 0.5), aCol, aPlantRow, aSeed });
+				else
+					aBoard->NewPlant(aCol, aPlantRow, aSeed, SeedType::SEED_NONE);
 			}
 		}
+
+		std::vector<int> aFrameTicks;
+		const Json* aFrames = aScenario.Find("frames");
+		if (aFrames != nullptr)
+		{
+			for (const Json& aFrame : aFrames->mItems)
+				aFrameTicks.push_back(static_cast<int>(aFrame.mNumber * 100.0 + 0.5));
+		}
+		size_t aSlash = theOutPath.find_last_of('/');
+		std::string aFrameDir = aSlash == std::string::npos ? std::string(".") : theOutPath.substr(0, aSlash);
 
 		Zombie* aZombie = aBoard->AddZombieInRow(aZombieType, aRow, -1);
 		if (aZombie == nullptr)
@@ -403,10 +505,20 @@ int ScenarioRun::Run(const std::string& theScenarioPath, const std::string& theO
 		WriteTick(anOut, mApp, aBoard, 0);
 		for (int aTick = 1; aTick <= aTicks; aTick++)
 		{
+			for (const TimedPlant& aPlant : aTimedPlants)
+			{
+				if (aPlant.mTick == aTick)
+					aBoard->AddPlant(aPlant.mCol, aPlant.mRow, aPlant.mSeed, SeedType::SEED_NONE);
+			}
 			mApp->mAppCounter++;
 			aBoard->ProcessDeleteQueue();
 			aBoard->Update();
 			WriteTick(anOut, mApp, aBoard, aTick);
+			for (int aFrameTick : aFrameTicks)
+			{
+				if (aFrameTick == aTick)
+					WriteFrame(mApp, aBoard, aFrameDir + "/oracle-frame-" + std::to_string(aTick) + ".png");
+			}
 		}
 	}
 	catch (const std::exception& anError)
