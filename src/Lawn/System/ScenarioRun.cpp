@@ -40,6 +40,7 @@
 #include "../Board.h"
 #include "../Challenge.h"
 #include "../Coin.h"
+#include "../MessageWidget.h"
 #include "../Plant.h"
 #include "../SeedPacket.h"
 #include "../Zombie.h"
@@ -384,7 +385,21 @@ void WriteTick(FILE* theOut, LawnApp* theApp, Board* theBoard, int theTick)
 			aCoin->mIsBeingCollected ? "true" : "false");
 		aFirst = false;
 	}
-	fprintf(theOut, "],\"sun\":%d,\"money\":%d}\n", theBoard->mSunMoney, theApp->mPlayerInfo->mCoins);
+	fprintf(theOut, "],\"belt\":[");
+	aFirst = true;
+	for (int i = 0; theBoard->HasConveyorBeltSeedBank() && i < theBoard->mSeedBank->mNumPackets; i++)
+	{
+		// Where the packet is drawn on the bank: its place plus how far it still has to ride.
+		const SeedPacket& aPacket = theBoard->mSeedBank->mSeedPackets[i];
+		if (aPacket.mPacketType == SeedType::SEED_NONE)
+			continue;
+		fprintf(theOut, "%s{\"seed\":%d,\"x\":%d}", aFirst ? "" : ",", static_cast<int>(aPacket.mPacketType),
+			aPacket.mX + aPacket.mOffsetX);
+		aFirst = false;
+	}
+	fprintf(theOut, "],\"advice\":%d,\"adviceShown\":%s,\"tutorial\":%d,\"sun\":%d,\"money\":%d}\n",
+		static_cast<int>(theBoard->mHelpIndex), theBoard->mAdvice->IsBeingDisplayed() ? "true" : "false",
+		static_cast<int>(theBoard->mTutorialState), theBoard->mSunMoney, theApp->mPlayerInfo->mCoins);
 }
 
 // Draws the board as its widget draws itself and writes the presented pixels as a PNG; the title
