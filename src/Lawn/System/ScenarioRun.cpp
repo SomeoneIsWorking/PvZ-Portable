@@ -304,6 +304,8 @@ int LevelForLawn(const std::string& theLawn)
 		return 34;
 	if (theLawn == "roof")
 		return 44;
+	if (theLawn == "roof-night")
+		return 50;
 	throw std::runtime_error("scenario: unknown lawn '" + theLawn + "'");
 }
 
