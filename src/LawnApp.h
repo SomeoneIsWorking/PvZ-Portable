@@ -87,7 +87,8 @@ public:
 	bool							mCheatKeys;
 	int								mStartLevel;			// -level: Adventure level to open once loading completes, 0 for none
 	std::string						mScenarioPath;			// -scenario: JSON scenario to run headless once loading completes, empty for none
-	std::string						mScenarioOut;			// -scenario-out: where the scenario writes its per-update JSON lines
+	std::string						mScenarioOut;
+	std::string						mLevelTablesOut;		// -level-tables: where every level's InitLevel tables are written, empty for none			// -scenario-out: where the scenario writes its per-update JSON lines
 	GameMode						mGameMode;
 	GameScenes						mGameScene;
 	bool							mLoadingZombiesThreadCompleted;
@@ -237,6 +238,7 @@ public:
 	void							FastLoad(GameMode theGameMode);
 	void							StartLevelFromCommandLine();
 	void							RunScenarioFromCommandLine();
+	void							WriteLevelTablesFromCommandLine();
 	static std::string				GetStageString(int theLevel);
 	void					KillChallengeScreen();
 	void							ShowChallengeScreen(ChallengePage thePage);

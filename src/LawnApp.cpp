@@ -22,6 +22,7 @@
 #include <time.h>
 #include "LawnApp.h"
 #include "Lawn/System/ScenarioRun.h"
+#include "Lawn/System/LevelTables.h"
 #include "Resources.h"
 #include "Lawn/LawnCommon.h"
 #include "Lawn/Board.h"
@@ -1275,6 +1276,11 @@ void LawnApp::HandleCmdLineParam(std::string_view theParamName, std::string_view
 	{
 		mScenarioOut = std::string(theParamValue);
 	}
+	else if (theParamName == "-level-tables")
+	{
+		mLevelTablesOut = std::string(theParamValue);
+		mWindowHidden = true;
+	}
 	else
 	{
 		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
@@ -1297,6 +1303,17 @@ void LawnApp::RunScenarioFromCommandLine()
 	}
 	int aCode = ScenarioRun(this).Run(mScenarioPath, mScenarioOut);
 	DoExit(aCode);
+}
+
+// Writes every level's InitLevel tables to -level-tables headless, then exits with its code.
+void LawnApp::WriteLevelTablesFromCommandLine()
+{
+	if (mPlayerInfo == nullptr)
+	{
+		mPlayerInfo = mProfileMgr->AddProfile("level-tables");
+		mProfileMgr->Save();
+	}
+	DoExit(LevelTables(this).Write(mLevelTablesOut));
 }
 
 // Opens the -level=A-S Adventure level in place of the title screen's Start button, as the

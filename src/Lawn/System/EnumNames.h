@@ -20,6 +20,9 @@ int GameModeByName(const std::string& theName, const char* theWhat);
 // Null for a value the table does not hold.
 const char* ZombieName(int theValue);
 const char* SeedName(int theValue);
+const char* CoinName(int theValue);
+const char* BackgroundName(int theValue);
+const char* PlantRowName(int theValue);
 }
 
 #endif

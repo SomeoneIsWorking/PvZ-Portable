@@ -437,6 +437,10 @@ void TitleScreen::Update()
 		{
 			mApp->RunScenarioFromCommandLine();
 		}
+		else if (!mApp->mLevelTablesOut.empty())
+		{
+			mApp->WriteLevelTablesFromCommandLine();
+		}
 		else if (mApp->mStartLevel > 0)
 		{
 			mApp->StartLevelFromCommandLine();

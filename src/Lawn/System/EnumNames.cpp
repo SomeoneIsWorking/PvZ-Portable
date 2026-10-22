@@ -70,6 +70,22 @@ const NamedValue gGameModeNames[] = {
 	NAMED(GAMEMODE_PUZZLE_I_ZOMBIE_9),
 };
 
+const NamedValue gCoinNames[] = {
+	NAMED(COIN_NONE), NAMED(COIN_FINAL_SEED_PACKET), NAMED(COIN_TROPHY), NAMED(COIN_SHOVEL), NAMED(COIN_ALMANAC),
+	NAMED(COIN_CARKEYS), NAMED(COIN_WATERING_CAN), NAMED(COIN_TACO), NAMED(COIN_NOTE), NAMED(COIN_AWARD_MONEY_BAG),
+	NAMED(COIN_AWARD_SILVER_SUNFLOWER),
+};
+
+const NamedValue gBackgroundNames[] = {
+	NAMED(BACKGROUND_1_DAY), NAMED(BACKGROUND_2_NIGHT), NAMED(BACKGROUND_3_POOL), NAMED(BACKGROUND_4_FOG),
+	NAMED(BACKGROUND_5_ROOF), NAMED(BACKGROUND_6_BOSS), NAMED(BACKGROUND_MUSHROOM_GARDEN), NAMED(BACKGROUND_GREENHOUSE),
+	NAMED(BACKGROUND_ZOMBIQUARIUM), NAMED(BACKGROUND_TREEOFWISDOM),
+};
+
+const NamedValue gPlantRowNames[] = {
+	NAMED(PLANTROW_DIRT), NAMED(PLANTROW_NORMAL), NAMED(PLANTROW_POOL), NAMED(PLANTROW_HIGH_GROUND),
+};
+
 #undef NAMED
 
 template <size_t N>
@@ -119,4 +135,19 @@ const char* EnumNames::ZombieName(int theValue)
 const char* EnumNames::SeedName(int theValue)
 {
 	return NameOf(gSeedNames, theValue);
+}
+
+const char* EnumNames::CoinName(int theValue)
+{
+	return NameOf(gCoinNames, theValue);
+}
+
+const char* EnumNames::BackgroundName(int theValue)
+{
+	return NameOf(gBackgroundNames, theValue);
+}
+
+const char* EnumNames::PlantRowName(int theValue)
+{
+	return NameOf(gPlantRowNames, theValue);
 }
