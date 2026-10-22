@@ -7184,42 +7184,7 @@ bool Zombie::TrySpawnLevelAward()
 	}
 	else if (mApp->IsAdventureMode() && mBoard->mLevel <= 50)
 	{
-		if (mBoard->mLevel == 9 || mBoard->mLevel == 19 || mBoard->mLevel == 29 || mBoard->mLevel == 39 || mBoard->mLevel == 49)
-		{
-			aCoinType = CoinType::COIN_NOTE;
-		}
-		else if (mBoard->mLevel == 50)
-		{
-			aCoinType = mApp->HasFinishedAdventure() ? CoinType::COIN_AWARD_MONEY_BAG : CoinType::COIN_AWARD_SILVER_SUNFLOWER;
-		}
-		else if (mApp->HasFinishedAdventure())
-		{
-			aCoinType = CoinType::COIN_AWARD_MONEY_BAG;
-		}
-		else if (mBoard->mLevel == 4)
-		{
-			aCoinType = CoinType::COIN_SHOVEL;
-		}
-		else if (mBoard->mLevel == 14)
-		{
-			aCoinType = CoinType::COIN_ALMANAC;
-		}
-		else if (mBoard->mLevel == 24)
-		{
-			aCoinType = CoinType::COIN_CARKEYS;
-		}
-		else if (mBoard->mLevel == 34)
-		{
-			aCoinType = CoinType::COIN_TACO;
-		}
-		else if (mBoard->mLevel == 44)
-		{
-			aCoinType = CoinType::COIN_WATERING_CAN;
-		}
-		else
-		{
-			aCoinType = CoinType::COIN_FINAL_SEED_PACKET;
-		}
+		aCoinType = mApp->AdventureAwardCoin(mBoard->mLevel);
 	}
 	else if (mBoard->IsSurvivalStageWithRepick())
 	{

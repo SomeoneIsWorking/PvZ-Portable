@@ -271,6 +271,7 @@ public:
 	bool					IsFinalBossLevel();
 	bool					IsBungeeBlitzLevel();
 	static SeedType		GetAwardSeedForLevel(int theLevel);
+	CoinType				AdventureAwardCoin(int theLevel);
 	std::string						GetCrazyDaveText(int theMessageIndex);
 	bool					CanShowAlmanac();
 	bool					IsNight();

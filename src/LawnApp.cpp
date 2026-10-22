@@ -2260,6 +2260,47 @@ void LawnApp::CloseRequestAsync()
 	mCloseRequest = true;
 }
 
+// The coin an Adventure level's last zombie drops, the level's award (Zombie::TrySpawnLevelAward).
+CoinType LawnApp::AdventureAwardCoin(int theLevel)
+{
+	if (theLevel == 9 || theLevel == 19 || theLevel == 29 || theLevel == 39 || theLevel == 49)
+	{
+		return CoinType::COIN_NOTE;
+	}
+	else if (theLevel == 50)
+	{
+		return HasFinishedAdventure() ? CoinType::COIN_AWARD_MONEY_BAG : CoinType::COIN_AWARD_SILVER_SUNFLOWER;
+	}
+	else if (HasFinishedAdventure())
+	{
+		return CoinType::COIN_AWARD_MONEY_BAG;
+	}
+	else if (theLevel == 4)
+	{
+		return CoinType::COIN_SHOVEL;
+	}
+	else if (theLevel == 14)
+	{
+		return CoinType::COIN_ALMANAC;
+	}
+	else if (theLevel == 24)
+	{
+		return CoinType::COIN_CARKEYS;
+	}
+	else if (theLevel == 34)
+	{
+		return CoinType::COIN_TACO;
+	}
+	else if (theLevel == 44)
+	{
+		return CoinType::COIN_WATERING_CAN;
+	}
+	else
+	{
+		return CoinType::COIN_FINAL_SEED_PACKET;
+	}
+}
+
 SeedType LawnApp::GetAwardSeedForLevel(int theLevel)
 {
 	int aArea = (theLevel - 1) / LEVELS_PER_AREA + 1;
