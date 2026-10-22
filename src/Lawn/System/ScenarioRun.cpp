@@ -23,6 +23,7 @@
 // "money": n }; tick 0 is before any update.
 
 #include "ScenarioRun.h"
+#include "EnumNames.h"
 
 #include <cctype>
 #include <climits>
@@ -223,75 +224,6 @@ private:
 	}
 };
 
-struct NamedValue
-{
-	const char* mName;
-	int mValue;
-};
-
-#define NAMED(theName) { #theName, theName }
-
-const NamedValue gZombieNames[] = {
-	NAMED(ZOMBIE_NORMAL), NAMED(ZOMBIE_FLAG), NAMED(ZOMBIE_TRAFFIC_CONE), NAMED(ZOMBIE_POLEVAULTER),
-	NAMED(ZOMBIE_PAIL), NAMED(ZOMBIE_NEWSPAPER), NAMED(ZOMBIE_DOOR), NAMED(ZOMBIE_FOOTBALL),
-	NAMED(ZOMBIE_DANCER), NAMED(ZOMBIE_BACKUP_DANCER), NAMED(ZOMBIE_DUCKY_TUBE), NAMED(ZOMBIE_SNORKEL),
-	NAMED(ZOMBIE_ZAMBONI), NAMED(ZOMBIE_BOBSLED), NAMED(ZOMBIE_DOLPHIN_RIDER), NAMED(ZOMBIE_JACK_IN_THE_BOX),
-	NAMED(ZOMBIE_BALLOON), NAMED(ZOMBIE_DIGGER), NAMED(ZOMBIE_POGO), NAMED(ZOMBIE_YETI),
-	NAMED(ZOMBIE_BUNGEE), NAMED(ZOMBIE_LADDER), NAMED(ZOMBIE_CATAPULT), NAMED(ZOMBIE_GARGANTUAR),
-	NAMED(ZOMBIE_IMP), NAMED(ZOMBIE_BOSS), NAMED(ZOMBIE_PEA_HEAD), NAMED(ZOMBIE_WALLNUT_HEAD),
-	NAMED(ZOMBIE_JALAPENO_HEAD), NAMED(ZOMBIE_GATLING_HEAD), NAMED(ZOMBIE_SQUASH_HEAD),
-	NAMED(ZOMBIE_TALLNUT_HEAD), NAMED(ZOMBIE_REDEYE_GARGANTUAR),
-};
-
-const NamedValue gSeedNames[] = {
-	NAMED(SEED_PEASHOOTER), NAMED(SEED_SUNFLOWER), NAMED(SEED_CHERRYBOMB), NAMED(SEED_WALLNUT),
-	NAMED(SEED_POTATOMINE), NAMED(SEED_SNOWPEA), NAMED(SEED_CHOMPER), NAMED(SEED_REPEATER),
-	NAMED(SEED_PUFFSHROOM), NAMED(SEED_SUNSHROOM), NAMED(SEED_FUMESHROOM), NAMED(SEED_GRAVEBUSTER),
-	NAMED(SEED_HYPNOSHROOM), NAMED(SEED_SCAREDYSHROOM), NAMED(SEED_ICESHROOM), NAMED(SEED_DOOMSHROOM),
-	NAMED(SEED_LILYPAD), NAMED(SEED_SQUASH), NAMED(SEED_THREEPEATER), NAMED(SEED_TANGLEKELP),
-	NAMED(SEED_JALAPENO), NAMED(SEED_SPIKEWEED), NAMED(SEED_TORCHWOOD), NAMED(SEED_TALLNUT),
-	NAMED(SEED_SEASHROOM), NAMED(SEED_PLANTERN), NAMED(SEED_CACTUS), NAMED(SEED_BLOVER),
-	NAMED(SEED_SPLITPEA), NAMED(SEED_STARFRUIT), NAMED(SEED_PUMPKINSHELL), NAMED(SEED_MAGNETSHROOM),
-	NAMED(SEED_CABBAGEPULT), NAMED(SEED_FLOWERPOT), NAMED(SEED_KERNELPULT), NAMED(SEED_INSTANT_COFFEE),
-	NAMED(SEED_GARLIC), NAMED(SEED_UMBRELLA), NAMED(SEED_MARIGOLD), NAMED(SEED_MELONPULT),
-	NAMED(SEED_GATLINGPEA), NAMED(SEED_TWINSUNFLOWER), NAMED(SEED_GLOOMSHROOM), NAMED(SEED_CATTAIL),
-	NAMED(SEED_WINTERMELON), NAMED(SEED_GOLD_MAGNET), NAMED(SEED_SPIKEROCK), NAMED(SEED_COBCANNON),
-	NAMED(SEED_IMITATER), NAMED(SEED_EXPLODE_O_NUT), NAMED(SEED_GIANT_WALLNUT),
-};
-
-const NamedValue gGameModeNames[] = {
-	NAMED(GAMEMODE_ADVENTURE), NAMED(GAMEMODE_CHALLENGE_WAR_AND_PEAS), NAMED(GAMEMODE_CHALLENGE_WALLNUT_BOWLING),
-	NAMED(GAMEMODE_CHALLENGE_SLOT_MACHINE), NAMED(GAMEMODE_CHALLENGE_RAINING_SEEDS), NAMED(GAMEMODE_CHALLENGE_BEGHOULED),
-	NAMED(GAMEMODE_CHALLENGE_INVISIGHOUL), NAMED(GAMEMODE_CHALLENGE_SEEING_STARS), NAMED(GAMEMODE_CHALLENGE_ZOMBIQUARIUM),
-	NAMED(GAMEMODE_CHALLENGE_BEGHOULED_TWIST), NAMED(GAMEMODE_CHALLENGE_LITTLE_TROUBLE),
-	NAMED(GAMEMODE_CHALLENGE_PORTAL_COMBAT), NAMED(GAMEMODE_CHALLENGE_COLUMN), NAMED(GAMEMODE_CHALLENGE_BOBSLED_BONANZA),
-	NAMED(GAMEMODE_CHALLENGE_SPEED), NAMED(GAMEMODE_CHALLENGE_WHACK_A_ZOMBIE), NAMED(GAMEMODE_CHALLENGE_LAST_STAND),
-	NAMED(GAMEMODE_CHALLENGE_WAR_AND_PEAS_2), NAMED(GAMEMODE_CHALLENGE_WALLNUT_BOWLING_2),
-	NAMED(GAMEMODE_CHALLENGE_POGO_PARTY), NAMED(GAMEMODE_CHALLENGE_FINAL_BOSS),
-	NAMED(GAMEMODE_CHALLENGE_ART_CHALLENGE_WALLNUT), NAMED(GAMEMODE_CHALLENGE_SUNNY_DAY),
-	NAMED(GAMEMODE_CHALLENGE_RESODDED), NAMED(GAMEMODE_CHALLENGE_BIG_TIME),
-	NAMED(GAMEMODE_CHALLENGE_ART_CHALLENGE_SUNFLOWER), NAMED(GAMEMODE_CHALLENGE_AIR_RAID), NAMED(GAMEMODE_CHALLENGE_ICE),
-	NAMED(GAMEMODE_CHALLENGE_HIGH_GRAVITY), NAMED(GAMEMODE_CHALLENGE_GRAVE_DANGER),
-	NAMED(GAMEMODE_CHALLENGE_SHOVEL), NAMED(GAMEMODE_CHALLENGE_STORMY_NIGHT), NAMED(GAMEMODE_CHALLENGE_BUNGEE_BLITZ),
-	NAMED(GAMEMODE_CHALLENGE_SQUIRREL), NAMED(GAMEMODE_PUZZLE_I_ZOMBIE_1), NAMED(GAMEMODE_PUZZLE_I_ZOMBIE_2),
-	NAMED(GAMEMODE_PUZZLE_I_ZOMBIE_3), NAMED(GAMEMODE_PUZZLE_I_ZOMBIE_4), NAMED(GAMEMODE_PUZZLE_I_ZOMBIE_5),
-	NAMED(GAMEMODE_PUZZLE_I_ZOMBIE_6), NAMED(GAMEMODE_PUZZLE_I_ZOMBIE_7), NAMED(GAMEMODE_PUZZLE_I_ZOMBIE_8),
-	NAMED(GAMEMODE_PUZZLE_I_ZOMBIE_9),
-};
-
-#undef NAMED
-
-template <size_t N>
-int LookUp(const NamedValue (&theTable)[N], const std::string& theName, const char* theWhat)
-{
-	for (const NamedValue& aEntry : theTable)
-	{
-		if (theName == aEntry.mName)
-			return aEntry.mValue;
-	}
-	throw std::runtime_error(std::string("scenario: unknown ") + theWhat + " '" + theName + "'");
-}
-
 // The Adventure level whose lawn the scenario plays on: a level with all five rows open.
 int LevelForLawn(const std::string& theLawn)
 {
@@ -481,14 +413,14 @@ int ScenarioRun::Run(const std::string& theScenarioPath, const std::string& theO
 		int aLevel = LevelForLawn(StringOr(aScenario, "lawn", "day"));
 		const Json* aZombieName = aScenario.Find("zombie");
 		bool aHasZombie = aZombieName != nullptr && aZombieName->mKind == Json::String;
-		ZombieType aZombieType = aHasZombie ? static_cast<ZombieType>(LookUp(gZombieNames, aZombieName->mString, "zombie"))
+		ZombieType aZombieType = aHasZombie ? static_cast<ZombieType>(EnumNames::ZombieByName(aZombieName->mString, "zombie"))
 		                                    : ZombieType::ZOMBIE_INVALID;
 		int aRow = static_cast<int>(NumberOr(aScenario, "row", 2));
 		int aTicks = static_cast<int>(NumberOr(aScenario, "seconds", 20) * 100.0);
 
 		mApp->mPlayerInfo->SetLevel(aLevel);
 		const Json* aMode = aScenario.Find("mode");
-		mApp->mGameMode = aMode != nullptr ? static_cast<GameMode>(LookUp(gGameModeNames, aMode->mString, "mode"))
+		mApp->mGameMode = aMode != nullptr ? static_cast<GameMode>(EnumNames::GameModeByName(aMode->mString, "mode"))
 		                                    : GameMode::GAMEMODE_ADVENTURE;
 		const Json* aBeaten = aScenario.Find("beaten");
 		if (aBeaten != nullptr && aBeaten->mKind == Json::Bool && aBeaten->mBool)
@@ -529,7 +461,7 @@ int ScenarioRun::Run(const std::string& theScenarioPath, const std::string& theO
 		{
 			for (const Json& aPlantSpec : aPlants->mItems)
 			{
-				SeedType aSeed = static_cast<SeedType>(LookUp(gSeedNames, StringOr(aPlantSpec, "seed", ""), "seed"));
+				SeedType aSeed = static_cast<SeedType>(EnumNames::SeedByName(StringOr(aPlantSpec, "seed", ""), "seed"));
 				int aCol = static_cast<int>(NumberOr(aPlantSpec, "col", 0));
 				int aPlantRow = static_cast<int>(NumberOr(aPlantSpec, "row", aRow));
 				const Json* anAt = aPlantSpec.Find("at");
@@ -578,7 +510,7 @@ int ScenarioRun::Run(const std::string& theScenarioPath, const std::string& theO
 		{
 			for (const Json& aCompanion : aCompanions->mItems)
 			{
-				ZombieType aType = static_cast<ZombieType>(LookUp(gZombieNames, StringOr(aCompanion, "zombie", ""), "zombie"));
+				ZombieType aType = static_cast<ZombieType>(EnumNames::ZombieByName(StringOr(aCompanion, "zombie", ""), "zombie"));
 				if (aBoard->AddZombieInRow(aType, static_cast<int>(NumberOr(aCompanion, "row", 0)), -1) == nullptr)
 					throw std::runtime_error("scenario: the board refused a companion zombie");
 			}
