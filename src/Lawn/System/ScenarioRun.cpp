@@ -347,14 +347,15 @@ void WriteTick(FILE* theOut, LawnApp* theApp, Board* theBoard, int theTick)
 		fprintf(theOut,
 			"%s{\"id\":%u,\"type\":%d,\"row\":%d,\"x\":%.4f,\"y\":%.4f,\"altitude\":%.4f,\"velX\":%.5f,"
 			"\"bodyHealth\":%d,\"helmHealth\":%d,\"shieldHealth\":%d,\"phase\":%d,\"height\":%d,"
-			"\"eating\":%s,\"dying\":%s,\"track\":\"%s\",\"animTime\":%.5f,\"frameStart\":%d,\"frameCount\":%d}",
+			"\"eating\":%s,\"dying\":%s,\"track\":\"%s\",\"animTime\":%.5f,\"frameStart\":%d,\"frameCount\":%d,"
+			"\"related\":%u}",
 			aFirst ? "" : ",", aZombieIndex, static_cast<int>(aZombie->mZombieType), aZombie->mRow,
 			aZombie->mPosX, aZombie->mPosY, aZombie->mAltitude, aZombie->mVelX, aZombie->mBodyHealth,
 			aZombie->mHelmHealth, aZombie->mShieldHealth, static_cast<int>(aZombie->mZombiePhase),
 			static_cast<int>(aZombie->mZombieHeight), aZombie->mIsEating ? "true" : "false",
 			aZombie->IsDeadOrDying() ? "true" : "false", CurrentTrackName(aReanim).c_str(),
 			aReanim != nullptr ? aReanim->mAnimTime : 0.0f, aReanim != nullptr ? aReanim->mFrameStart : 0,
-			aReanim != nullptr ? aReanim->mFrameCount : 0);
+			aReanim != nullptr ? aReanim->mFrameCount : 0, static_cast<unsigned int>(aZombie->mRelatedZombieID));
 		aFirst = false;
 	}
 	fprintf(theOut, "],\"plants\":[");
