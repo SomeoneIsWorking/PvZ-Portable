@@ -18,8 +18,9 @@
 // trace. "zombie" may be null for a board with no tracked zombie. "beaten": true records the mode's
 // challenge as won before the board starts, so the board plays as a replay. "mowers": true keeps
 // the board's mowers, which are otherwise taken off. "presses": [ { "at": seconds, "packet":
-// index } ] clicks that seed packet as the player does. A line is { "tick": n,
-// "zombies": [...], "plants": [...], "coins": [...], "sun": n, "money": n }; tick 0 is before any update.
+// index } ] clicks that seed packet as the player does. A line is { "tick": n, "appCounter": n
+// (what the dancers dance to), "zombies": [...], "plants": [...], "coins": [...], "sun": n,
+// "money": n }; tick 0 is before any update.
 
 #include "ScenarioRun.h"
 
@@ -339,7 +340,7 @@ std::string CurrentTrackName(Reanimation* theReanim)
 
 void WriteTick(FILE* theOut, LawnApp* theApp, Board* theBoard, int theTick)
 {
-	fprintf(theOut, "{\"tick\":%d,\"zombies\":[", theTick);
+	fprintf(theOut, "{\"tick\":%d,\"appCounter\":%d,\"zombies\":[", theTick, theApp->mAppCounter);
 	bool aFirst = true;
 	for (Zombie* aZombie : theBoard->mZombies)
 	{
