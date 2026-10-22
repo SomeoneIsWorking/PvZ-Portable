@@ -25,6 +25,7 @@
 #include "ScenarioRun.h"
 
 #include <cctype>
+#include <climits>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -502,12 +503,20 @@ int ScenarioRun::Run(const std::string& theScenarioPath, const std::string& theO
 
 		// No waves or sky sun, and no mowers unless asked: the scenario places everything it measures.
 		aBoard->mCurrentWave = aBoard->mNumWaves;
+		// An Adventure board's belt deals only its opening packets: 5-10's picks read a boss the scenario does not place.
+		if (aMode == nullptr && aBoard->HasConveyorBeltSeedBank())
+			aBoard->mChallenge->mConveyorBeltCounter = INT_MAX;
+		// CutScene::PlaceLawnItems lays the mowers, which a scenario skips; a roof's need the Roof Cleaner.
 		const Json* aMowers = aScenario.Find("mowers");
-		if (aMowers == nullptr || aMowers->mKind != Json::Bool || !aMowers->mBool)
+		if (aMowers != nullptr && aMowers->mKind == Json::Bool && aMowers->mBool)
 		{
+			mApp->mPlayerInfo->mPurchases[StoreItem::STORE_ITEM_ROOF_CLEANER] = 1;
+			aBoard->InitLawnMowers();
 			for (LawnMower* aMower : aBoard->mLawnMowers)
 			{
-				aMower->mDead = true;
+				// Where CutScene::Update's roll-in leaves them.
+				aMower->mVisible = true;
+				aMower->mPosX = -21.0f;
 			}
 		}
 
